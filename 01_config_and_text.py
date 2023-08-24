@@ -19,8 +19,8 @@ st.set_page_config(
 
 # Data ####################
 
-# APP_TOKEN = os.getenv('MY_APP_TOKEN')
-APP_TOKEN = st.secrets('MY_APP_TOKEN')
+APP_TOKEN = os.getenv('MY_APP_TOKEN')
+# APP_TOKEN = st.secrets('MY_APP_TOKEN')
 ENDPOINT = r"https://data.kcmo.org/resource/d4px-6rwg.json"
 DATE_FILTER = r"open_date_time>'2023-01-01'"
 STATUS_FILTER = r"current_status='resolved'"
@@ -218,12 +218,12 @@ BUCKET = 'reported-issues'
 
 s3 = boto3.resource(
     service_name = 's3',
-    # region_name = os.getenv('AWS_DEFAULT_REGION'),
-    # aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID'),
-    # aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
-    region_name = st.secrets('AWS_DEFAULT_REGION'),
-    aws_access_key_id = st.secrets('AWS_ACCESS_KEY_ID'),
-    aws_secret_access_key = st.secrets('AWS_SECRET_ACCESS_KEY')
+    region_name = os.getenv('AWS_DEFAULT_REGION'),
+    aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+    # region_name = st.secrets('AWS_DEFAULT_REGION'),
+    # aws_access_key_id = st.secrets('AWS_ACCESS_KEY_ID'),
+    # aws_secret_access_key = st.secrets('AWS_SECRET_ACCESS_KEY')
 )
 
 s3_bucket = s3.Bucket(name=BUCKET)
