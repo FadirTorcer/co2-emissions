@@ -1,14 +1,38 @@
 import streamlit as st
 
-count = 0
+x = st.selectbox(
+    label = 'Pick me!',
+    options = ['A', 'B', 'C']
+)
 
-increment = st.button('Increment')
+st.write(x)
 
-if increment:
-    count += 1
+y = st.slider(
+    label = 'Set slider',
+    min_value = 0,
+    max_value = 10,
+    value = 5,
+    step = 1
+)
 
-st.write('State of increment button: ', increment)
-st.write('Count = ', count)
+st.write(y)
+
+
+
+
+
+
+
+
+# count = 0
+
+# increment = st.button('Increment')
+
+# if increment:
+#     count += 1
+
+# st.write('State of increment button: ', increment)
+# st.write('Count = ', count)
 
 
 
