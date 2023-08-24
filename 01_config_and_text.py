@@ -3,17 +3,21 @@ import altair as alt
 from sodapy import Socrata
 import pandas as pd
 import os
-from datetime import date
+from datetime import date, datetime
 from collections import Counter
+import boto3
+import json
 
 # Page Configuration ####################
 
 st.set_page_config(
     page_title = '311 Reported Issues',
     page_icon = ':vertical_traffic_light:',
-    layout = 'centered',
+    layout = 'wide',
     initial_sidebar_state = 'expanded'
 )
+
+# Data ####################
 
 APP_TOKEN = os.getenv('MY_APP_TOKEN')
 API_ENDPOINT = 'data.kcmo.org'
@@ -52,6 +56,37 @@ def get_data():
     return df
 
 df = get_data()
+
+# Sidebar ####################
+
+all_zips = [x for x in sorted(df['incident_zip'].unique()) if len(x) > 3]
+
+with st.sidebar:
+
+    st.write('Show data by zipcode')
+
+    st.checkbox(
+        label = 'Show all zipcodes',
+        value = True,
+        key = 'zip_checkbox'
+    )
+    
+    if st.session_state['zip_checkbox']:
+        st.session_state['zips'] = all_zips
+    else:
+        def update_zips():
+            st.session_state['zips'] = [st.session_state['zip_selector']]
+        st.selectbox(
+            label = 'Select a zipcode',
+            options = all_zips,
+            index = 0,
+            key = 'zip_selector',
+            on_change = update_zips
+        )
+        if 'zip_selector' not in st.session_state:
+            st.session_state['zips'] = all_zips
+        
+df = df[df['incident_zip'].isin(st.session_state['zips'])]      
 
 # Titles and Headers ####################
 
@@ -108,28 +143,36 @@ g = df.groupby(['open_week', 'issue_type']) \
 g = g[['open_week', 'count_of_issues', 'issue_type']]
 g1= g.pivot(index='open_week', columns='issue_type', values='count_of_issues').fillna(0)
 
-# filter data
+# create columns
 
-if 'issue_selector' not in st.session_state:
-    st.session_state['issue_selector'] = g1.columns.to_list()
+col1, col2 = st.columns(2)
 
-selected_types = st.multiselect(
-    label = 'Select one or more issue types',
-    options = g1.columns.to_list(),
-    key = 'issue_selector'
-)
+with col2:
+    
+    # filter data
+    
+    if 'issue_selector' not in st.session_state:
+        st.session_state['issue_selector'] = g1.columns.to_list()
 
-# display data
+    selected_types = st.multiselect(
+        label = 'Select one or more issue types',
+        options = g1.columns.to_list(),
+        key = 'issue_selector'
+    )
 
-st.line_chart(g1[st.session_state['issue_selector']])
+with col1:
 
-# c = alt.Chart(g[g['issue_type'].isin(st.session_state['issue_selector'])]).mark_line().encode(
-#     color = 'issue_type',
-#     x = 'open_week',
-#     y = 'count_of_issues'
-# ).properties(width=800)
+    # display data
 
-# st.altair_chart(c)
+    st.line_chart(g1[st.session_state['issue_selector']])
+
+    # c = alt.Chart(g[g['issue_type'].isin(st.session_state['issue_selector'])]).mark_line().encode(
+    #     color = 'issue_type',
+    #     x = 'open_week',
+    #     y = 'count_of_issues'
+    # ).properties(width=800)
+
+    # st.altair_chart(c)
 
 # Map ####################
 
@@ -142,8 +185,11 @@ data = df[df['issue_type'] == 'Trees - City Owned'].reset_index(drop=True)
 
 # filter data
 
-default_start_date = data['open_date_time'].dt.date.min()
-default_end_date = data['open_date_time'].dt.date.max()
+# default_start_date = data['open_date_time'].dt.date.min()
+# default_end_date = data['open_date_time'].dt.date.max()
+
+default_start_date = date(2023, 1, 1)
+default_end_date = date(2023, 7, 31)
 
 if 'date_picker' not in st.session_state:
     st.session_state['start_date'] = default_start_date
@@ -170,4 +216,88 @@ filtered_data = data[(data['open_date_time'].dt.date >= st.session_state['start_
 
 st.map(data=filtered_data, zoom=9)
 
+# Form ####################
 
+BUCKET = 'reported-issues'
+
+s3 = boto3.resource(
+    service_name = 's3',
+    region_name = os.getenv('AWS_DEFAULT_REGION'),
+    aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+)
+
+s3_bucket = s3.Bucket(name=BUCKET)
+
+def put_data(data_string, current_datetime):
+    s3_bucket.put_object(
+        Key = f'submitted_311_issues/{current_datetime}.json',
+        Body = data_string
+    )
+    
+with st.form('issue_form'):
+   
+    st.write('Please enter issue details here')
+
+    form_issue_type = st.selectbox(
+        label = 'Issue Type',
+        options = df['issue_type'].unique(),
+        # index = 0,
+        key = 'form_issue_type'
+    )
+
+    form_issue_sub_type = st.selectbox(
+        label = 'Issue Subtype',
+        options = df['issue_sub_type'].unique(),
+        key = 'form_issue_sub_type'
+    )
+
+    form_zipcode = st.text_input(
+        label = 'Incident Zipcode',
+        value = '',
+        max_chars = 5,
+        key = 'form_zipcode'
+    )
+
+    submitted = st.form_submit_button('Submit')
+
+    if submitted:
+        current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
+        data_dict = {
+            'open_date_time': current_datetime,
+            'issue_type': form_issue_type,
+            'issue_sub_type': form_issue_sub_type,
+            'issue_zipcode': form_zipcode
+        }
+        data_string = json.dumps(data_dict, indent=2, default=str) 
+        put_data(data_string, current_datetime)
+
+    
+
+    
+
+    if submitted:
+        st.write('issue type: ', form_issue_type, ', issue subtype: ', form_issue_sub_type, ', zip: ', form_zipcode)
+
+
+st.image(
+    'https://www.kcsmartsewer.us/home/showpublishedimage/4169/637305142541770000',
+    width = 400
+    )
+
+
+
+
+
+# record current datetime
+
+# enter issue type (get from df)
+
+# enter issue_sub_type (get from df)
+
+# enter zipcode (any number)
+
+# send to S3 bucket
+
+
+       
