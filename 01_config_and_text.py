@@ -1,6 +1,6 @@
 import streamlit as st
 import altair as alt
-from sodapy import Socrata
+import requests
 import pandas as pd
 import os
 from datetime import date, datetime
@@ -20,24 +20,19 @@ st.set_page_config(
 # Data ####################
 
 APP_TOKEN = os.getenv('MY_APP_TOKEN')
-API_ENDPOINT = 'data.kcmo.org'
-DATASET_ID = 'd4px-6rwg'
-STATUS_FILTER = "current_status = 'resolved'"
-DATE_FILTER = "open_date_time >= '2023-01-01T00:00:00.000'"  # "open_date_time > '2021-03-04T00:00:00.000'"
-MAX_RECORDS = 500000  # 500000 to get all
+ENDPOINT = r"https://data.kcmo.org/resource/d4px-6rwg.json"
+DATE_FILTER = r"open_date_time>'2023-01-01'"
+STATUS_FILTER = r"current_status='resolved'"
+MAX_RECORDS = 500000
 
 @st.cache_data
 def get_data():
 
-    client = Socrata(API_ENDPOINT, APP_TOKEN)
+    headers={'X-App-Token': APP_TOKEN}
+    query = rf"{ENDPOINT}?$select=*&$where={DATE_FILTER}&{STATUS_FILTER}&$limit={MAX_RECORDS}"
 
-    results = client.get(
-        DATASET_ID, 
-        where = f'{STATUS_FILTER} AND {DATE_FILTER}',
-        limit = MAX_RECORDS)
-
-    df = pd.DataFrame.from_records(results)
-    # df = df[df['days_to_close'].notna()]
+    result = requests.get(query, headers=headers)
+    df = pd.DataFrame.from_records(result.json())
 
     # convert data types
     df['open_date_time'] = pd.to_datetime(df['open_date_time'])
