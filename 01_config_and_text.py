@@ -1,8 +1,8 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title = '311 Reported Issues',
-    page_icon = ':vertical_traffic_light:',
+    page_title = 'Watching Emissions',
+    page_icon = ':earth_americas:',
     layout = 'centered',
     initial_sidebar_state = 'expanded'
 )
@@ -19,16 +19,20 @@ st.set_page_config(
 
 # # titles and headers ##############################################################################
 
-# st.title('311 Reported Issues')
-# st.header('This is my header')
-# st.write('Only includes top 10 most common issue types')
+st.title('Watching Emissions')
+st.header('Natural Gas Emissions Per State')
+st.write('Total Carbon Dioxide Emissions From All Sectors')
 
-# st.write('---')
-# st.subheader('This is my subheader')
-# st.write('Here is some stuff I want to write. '
-#          'I can use **markdown** formatting, which is pretty _cool_. '
-#          'And with this long string, I can see what happens '
-#          'when I continue text past a single line.')
+st.write('---')
+st.subheader('Data Source')
+st.write('**Source:** U.S. Energy Information Administration \n')
+st.write('**Release:** Energy-Related CO2 Emissions by State \n'
+        '**Units:**  Million Metric Tons CO2, Not Seasonally Adjusted '
+        '**Frequency:**  Annual '
+        'See the EIA\'s report on Energy-Related Carbon Dioxide Emissions by State for technical notes and documentation. '
+        '**Suggested Citation:** '
+        'U.S. Energy Information Administration, Total Carbon Dioxide Emissions From All Sectors, Natural Gas for United States '
+        '[EMISSCO2TOTVTTNGUSA], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/EMISSCO2TOTVTTNGUSA, August 28, 2023.')
 
 # st.write('---')
 # st.subheader('This is my second section')
@@ -40,7 +44,7 @@ st.set_page_config(
 #          * item 3
 #          * item 4
 #          ''')
-# st.write('Link to my [Github repo](https://github.com/ajander/311-reported-issues)')
+# st.write('Link to my [Github repo](https://github.com/FadirTorcer/co2-emissions)')
 
 
 
